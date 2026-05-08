@@ -8,156 +8,211 @@ function getTheme() {
 
 const THEMES = {
   dark: {
-    bg: '#0a0f1e',
+    bg: '#080c14',
+    bgGrad: 'radial-gradient(ellipse 80% 60% at 50% 0%, #0d1a2e 0%, #080c14 100%)',
     accent: '#00d4aa',
     accentB: '#38bdf8',
-    orbA: 'rgba(0,212,170,0.18)',
-    orbB: 'rgba(8,145,178,0.14)',
-    iconBg: 'linear-gradient(145deg, rgba(0,212,170,0.22), rgba(8,145,178,0.14))',
-    iconBorder: 'rgba(0,212,170,0.4)',
-    iconShadow: '0 0 32px rgba(0,212,170,0.28), inset 0 1px 0 rgba(255,255,255,0.12)',
-    subtitleColor: 'rgba(148,163,184,0.8)',
-    dotColor: '#00d4aa',
-    ringGradient: 'conic-gradient(from 0deg, #00d4aa, #0891b2, #00d4aa)',
+    accentC: '#818cf8',
+    logoRing: 'conic-gradient(from 180deg, #00d4aa 0%, #38bdf8 40%, #818cf8 70%, #00d4aa 100%)',
+    titleColor: '#f1f5f9',
+    subtitleColor: 'rgba(148,163,184,0.6)',
+    progressTrack: 'rgba(255,255,255,0.06)',
+    progressFill: 'linear-gradient(90deg, #00d4aa, #38bdf8, #818cf8)',
+    glowColor: 'rgba(0,212,170,0.2)',
   },
   light: {
-    bg: '#f0faf7',
-    accent: '#2a9d8f',
+    bg: '#fafcff',
+    bgGrad: 'radial-gradient(ellipse 80% 60% at 50% 0%, #e8f4f8 0%, #fafcff 100%)',
+    accent: '#0f9980',
     accentB: '#0891b2',
-    orbA: 'rgba(42,157,143,0.18)',
-    orbB: 'rgba(8,145,178,0.12)',
-    iconBg: 'linear-gradient(145deg, rgba(42,157,143,0.18), rgba(8,145,178,0.12))',
-    iconBorder: 'rgba(42,157,143,0.45)',
-    iconShadow: '0 0 28px rgba(42,157,143,0.22), inset 0 1px 0 rgba(255,255,255,0.6)',
-    subtitleColor: 'rgba(46,92,84,0.75)',
-    dotColor: '#2a9d8f',
-    ringGradient: 'conic-gradient(from 0deg, #2a9d8f, #0891b2, #2a9d8f)',
+    accentC: '#6366f1',
+    logoRing: 'conic-gradient(from 180deg, #0f9980 0%, #0891b2 40%, #6366f1 70%, #0f9980 100%)',
+    titleColor: '#0f172a',
+    subtitleColor: 'rgba(71,85,105,0.7)',
+    progressTrack: 'rgba(0,0,0,0.07)',
+    progressFill: 'linear-gradient(90deg, #0f9980, #0891b2, #6366f1)',
+    glowColor: 'rgba(15,153,128,0.15)',
   },
 }
 
 export default function SplashScreen({ onDone }) {
-  const [phase, setPhase] = useState('enter') // enter → pulse → exit
-  const t = THEMES[getTheme()]
+  const [phase, setPhase] = useState('idle') // idle → reveal → progress → exit
+  const [progress, setProgress] = useState(0)
+  const theme = getTheme()
+  const t = THEMES[theme]
 
   useEffect(() => {
-    const t1 = setTimeout(() => setPhase('pulse'), 600)
-    const t2 = setTimeout(() => setPhase('exit'), 1800)
-    const t3 = setTimeout(() => onDone(), 2300)
-    return () => { clearTimeout(t1); clearTimeout(t2); clearTimeout(t3) }
+    // Kick off reveal after paint
+    const r0 = requestAnimationFrame(() => setPhase('reveal'))
+
+    // Start progress bar after logo settles
+    const t1 = setTimeout(() => setPhase('progress'), 500)
+
+    // Animate progress bar from 0→100 over ~1000ms
+    let raf
+    let start = null
+    const duration = 1000
+    function tick(ts) {
+      if (!start) start = ts
+      const pct = Math.min(((ts - start) / duration) * 100, 100)
+      setProgress(pct)
+      if (pct < 100) raf = requestAnimationFrame(tick)
+    }
+    const t2 = setTimeout(() => { raf = requestAnimationFrame(tick) }, 600)
+
+    // Exit
+    const t3 = setTimeout(() => setPhase('exit'), 1700)
+    const t4 = setTimeout(() => onDone(), 2100)
+
+    return () => {
+      cancelAnimationFrame(r0)
+      cancelAnimationFrame(raf)
+      clearTimeout(t1); clearTimeout(t2); clearTimeout(t3); clearTimeout(t4)
+    }
   }, [onDone])
+
+  const isExiting = phase === 'exit'
+  const isRevealed = phase !== 'idle'
 
   return (
     <div
       style={{
         position: 'fixed', inset: 0, zIndex: 9999,
-        background: t.bg,
+        background: t.bgGrad,
         display: 'flex', flexDirection: 'column',
         alignItems: 'center', justifyContent: 'center',
-        gap: '20px',
-        opacity: phase === 'exit' ? 0 : 1,
-        transform: phase === 'exit' ? 'scale(1.04)' : 'scale(1)',
-        transition: phase === 'exit' ? 'opacity 0.5s ease, transform 0.5s ease' : 'none',
         pointerEvents: 'none',
+        opacity: isExiting ? 0 : 1,
+        transition: isExiting ? 'opacity 0.4s cubic-bezier(0.4,0,1,1)' : 'none',
+        overflow: 'hidden',
       }}
     >
-      {/* Ambient orbs */}
-      <div style={{ position: 'absolute', inset: 0, overflow: 'hidden', pointerEvents: 'none' }}>
-        <div style={{
-          position: 'absolute', width: 340, height: 340, borderRadius: '50%',
-          background: t.orbA, filter: 'blur(80px)',
-          top: '10%', left: '50%', transform: 'translateX(-50%)',
-          animation: 'orbFloat 3s ease-in-out infinite',
-        }} />
-        <div style={{
-          position: 'absolute', width: 220, height: 220, borderRadius: '50%',
-          background: t.orbB, filter: 'blur(60px)',
-          bottom: '18%', right: '18%',
-          animation: 'orbFloat 3.6s ease-in-out infinite reverse',
-        }} />
-      </div>
-
-      {/* Logo ring */}
+      {/* Subtle noise overlay */}
       <div style={{
-        position: 'relative',
-        animation: phase === 'enter' ? 'logoIn 0.6s cubic-bezier(0.34,1.56,0.64,1) forwards' : undefined,
-      }}>
-        {/* Outer glow ring */}
-        <div style={{
-          position: 'absolute', inset: -14, borderRadius: '50%',
-          background: t.ringGradient,
-          opacity: phase === 'pulse' ? 0.7 : 0.3,
-          filter: 'blur(6px)',
-          animation: 'spin 2.5s linear infinite',
-          transition: 'opacity 0.4s',
-        }} />
-        {/* Icon circle */}
-        <div style={{
-          width: 88, height: 88, borderRadius: '50%',
-          background: t.iconBg,
-          border: `1.5px solid ${t.iconBorder}`,
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          boxShadow: t.iconShadow,
-          position: 'relative',
-          backdropFilter: 'blur(8px)',
-        }}>
-          <span style={{ fontSize: 42, lineHeight: 1, color: t.accent }}>₹</span>
-        </div>
-      </div>
+        position: 'absolute', inset: 0, opacity: 0.025,
+        backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")`,
+        backgroundSize: '200px 200px',
+      }} />
 
-      {/* App name */}
+      {/* Glow behind logo */}
       <div style={{
-        textAlign: 'center',
-        animation: 'fadeUp 0.7s 0.3s ease both',
-      }}>
-        <div style={{
-          fontSize: 28, fontWeight: 700, letterSpacing: '0.02em',
-          background: `linear-gradient(90deg, ${t.accent}, ${t.accentB})`,
-          WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
-          backgroundClip: 'text',
-        }}>
-          RupeeTrack
-        </div>
-        <div style={{
-          fontSize: 13, color: t.subtitleColor, marginTop: 4,
-          letterSpacing: '0.12em', textTransform: 'uppercase',
-        }}>
-          Smart Money Manager
-        </div>
-      </div>
+        position: 'absolute',
+        width: 280, height: 280, borderRadius: '50%',
+        background: t.glowColor,
+        filter: 'blur(60px)',
+        opacity: isRevealed ? 1 : 0,
+        transition: 'opacity 0.8s ease',
+        pointerEvents: 'none',
+      }} />
 
-      {/* Loading dots */}
+      {/* === Logo block === */}
       <div style={{
-        display: 'flex', gap: 8, marginTop: 8,
-        animation: 'fadeUp 0.7s 0.6s ease both',
+        display: 'flex', flexDirection: 'column',
+        alignItems: 'center', gap: 28,
+        opacity: isRevealed ? 1 : 0,
+        transform: isRevealed ? 'translateY(0)' : 'translateY(16px)',
+        transition: 'opacity 0.55s cubic-bezier(0.22,1,0.36,1), transform 0.55s cubic-bezier(0.22,1,0.36,1)',
       }}>
-        {[0, 1, 2].map(i => (
-          <div key={i} style={{
-            width: 6, height: 6, borderRadius: '50%',
-            background: t.dotColor,
-            animation: `dotBounce 1s ${i * 0.16}s ease-in-out infinite`,
+
+        {/* Icon */}
+        <div style={{ position: 'relative', width: 80, height: 80 }}>
+          {/* Spinning gradient ring */}
+          <div style={{
+            position: 'absolute', inset: -3,
+            borderRadius: '50%',
+            background: t.logoRing,
+            animation: 'spinRing 3s linear infinite',
+            opacity: 0.85,
           }} />
-        ))}
+          {/* Inner mask to make it a ring */}
+          <div style={{
+            position: 'absolute', inset: 2,
+            borderRadius: '50%',
+            background: theme === 'dark' ? '#080c14' : '#fafcff',
+          }} />
+          {/* Center symbol */}
+          <div style={{
+            position: 'absolute', inset: 0,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+          }}>
+            <span style={{
+              fontSize: 36, lineHeight: 1,
+              background: t.logoRing,
+              WebkitBackgroundClip: 'text',
+              WebkitTextFillColor: 'transparent',
+              backgroundClip: 'text',
+              fontWeight: 700,
+            }}>₹</span>
+          </div>
+        </div>
+
+        {/* App name + tagline */}
+        <div style={{ textAlign: 'center' }}>
+          <div style={{
+            fontSize: 30, fontWeight: 700, letterSpacing: '-0.02em',
+            color: t.titleColor,
+            fontFamily: "'Inter', 'SF Pro Display', system-ui, sans-serif",
+            marginBottom: 6,
+          }}>
+            Rupee<span style={{
+              background: t.progressFill,
+              WebkitBackgroundClip: 'text',
+              WebkitTextFillColor: 'transparent',
+              backgroundClip: 'text',
+            }}>Track</span>
+          </div>
+          <div style={{
+            fontSize: 11.5, color: t.subtitleColor,
+            letterSpacing: '0.18em', textTransform: 'uppercase',
+            fontWeight: 500,
+            fontFamily: "'Inter', system-ui, sans-serif",
+          }}>
+            Smart Money Manager
+          </div>
+        </div>
+      </div>
+
+      {/* === Progress bar === */}
+      <div style={{
+        position: 'absolute', bottom: 52,
+        width: 160,
+        opacity: phase === 'progress' || phase === 'exit' ? 1 : 0,
+        transition: 'opacity 0.4s ease',
+      }}>
+        {/* Track */}
+        <div style={{
+          width: '100%', height: 3, borderRadius: 99,
+          background: t.progressTrack,
+          overflow: 'hidden',
+          position: 'relative',
+        }}>
+          {/* Fill */}
+          <div style={{
+            height: '100%',
+            width: `${progress}%`,
+            borderRadius: 99,
+            background: t.progressFill,
+            transition: 'width 0.04s linear',
+            position: 'relative',
+            overflow: 'hidden',
+          }}>
+            {/* Shimmer gleam */}
+            <div style={{
+              position: 'absolute', inset: 0,
+              background: 'linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.45) 50%, transparent 100%)',
+              animation: 'shimmer 1.2s ease-in-out infinite',
+            }} />
+          </div>
+        </div>
       </div>
 
       <style>{`
-        @keyframes logoIn {
-          from { opacity: 0; transform: scale(0.6); }
-          to   { opacity: 1; transform: scale(1); }
-        }
-        @keyframes fadeUp {
-          from { opacity: 0; transform: translateY(14px); }
-          to   { opacity: 1; transform: translateY(0); }
-        }
-        @keyframes spin {
+        @keyframes spinRing {
           to { transform: rotate(360deg); }
         }
-        @keyframes orbFloat {
-          0%, 100% { transform: translateY(0) translateX(-50%); }
-          50%       { transform: translateY(-18px) translateX(-50%); }
-        }
-        @keyframes dotBounce {
-          0%, 80%, 100% { transform: scale(0.6); opacity: 0.4; }
-          40%            { transform: scale(1.2); opacity: 1; }
+        @keyframes shimmer {
+          0%   { transform: translateX(-100%); }
+          100% { transform: translateX(300%); }
         }
       `}</style>
     </div>
