@@ -10,8 +10,17 @@ function Field({ label, children }) {
   return <label className="space-y-1.5 text-xs font-semibold" style={{ color: 'var(--text-muted)' }}><span>{label}</span>{children}</label>
 }
 
+function inputStyle() {
+  return {
+    background: 'var(--surface2)',
+    border: '1px solid var(--border)',
+    color: 'var(--text-primary)',
+    boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.04)',
+  }
+}
+
 function inputClass() {
-  return 'w-full rounded-2xl px-3 py-2.5 text-sm outline-none transition-all bg-white/5 border border-white/10 focus:border-emerald-400/60'
+  return 'modal-input w-full rounded-2xl px-3 py-2.5 text-sm outline-none transition-all'
 }
 
 export default function EmiTracker({ emis, addEmi, payEmi, deleteEmi }) {
@@ -67,14 +76,14 @@ export default function EmiTracker({ emis, addEmi, payEmi, deleteEmi }) {
 
       {showForm && (
         <form onSubmit={submit} className="glass grid grid-cols-2 gap-3 rounded-[26px] p-4">
-          <div className="col-span-2"><Field label="Loan name"><input required className={inputClass()} placeholder="Home loan" value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} /></Field></div>
-          <Field label="Lender"><input className={inputClass()} placeholder="HDFC Bank" value={form.lender} onChange={e => setForm({ ...form, lender: e.target.value })} /></Field>
-          <Field label="Due day"><input required min="1" max="31" type="number" className={inputClass()} value={form.dueDay} onChange={e => setForm({ ...form, dueDay: e.target.value })} /></Field>
-          <Field label="Principal"><input required inputMode="decimal" className={inputClass()} value={form.principal} onChange={e => setForm({ ...form, principal: sanitizeMoneyInput(e.target.value) })} /></Field>
-          <Field label="Monthly EMI"><input required inputMode="decimal" className={inputClass()} value={form.emiAmount} onChange={e => setForm({ ...form, emiAmount: sanitizeMoneyInput(e.target.value) })} /></Field>
-          <Field label="Total months"><input required min="1" type="number" className={inputClass()} value={form.totalInstallments} onChange={e => setForm({ ...form, totalInstallments: e.target.value })} /></Field>
-          <Field label="Paid months"><input min="0" type="number" className={inputClass()} value={form.paidInstallments} onChange={e => setForm({ ...form, paidInstallments: e.target.value })} /></Field>
-          <div className="col-span-2"><Field label="Start date"><input required type="date" className={inputClass()} value={form.startDate} onChange={e => setForm({ ...form, startDate: e.target.value })} /></Field></div>
+          <div className="col-span-2"><Field label="Loan name"><input required className={inputClass()} style={inputStyle()} placeholder="Home loan" value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} /></Field></div>
+          <Field label="Lender"><input className={inputClass()} style={inputStyle()} placeholder="HDFC Bank" value={form.lender} onChange={e => setForm({ ...form, lender: e.target.value })} /></Field>
+          <Field label="Due day"><input required min="1" max="31" type="number" className={inputClass()} style={inputStyle()} value={form.dueDay} onChange={e => setForm({ ...form, dueDay: e.target.value })} /></Field>
+          <Field label="Principal"><input required inputMode="decimal" className={inputClass()} style={inputStyle()} value={form.principal} onChange={e => setForm({ ...form, principal: sanitizeMoneyInput(e.target.value) })} /></Field>
+          <Field label="Monthly EMI"><input required inputMode="decimal" className={inputClass()} style={inputStyle()} value={form.emiAmount} onChange={e => setForm({ ...form, emiAmount: sanitizeMoneyInput(e.target.value) })} /></Field>
+          <Field label="Total months"><input required min="1" type="number" className={inputClass()} style={inputStyle()} value={form.totalInstallments} onChange={e => setForm({ ...form, totalInstallments: e.target.value })} /></Field>
+          <Field label="Paid months"><input min="0" type="number" className={inputClass()} style={inputStyle()} value={form.paidInstallments} onChange={e => setForm({ ...form, paidInstallments: e.target.value })} /></Field>
+          <div className="col-span-2"><Field label="Start date"><input required type="date" className={inputClass()} style={inputStyle()} value={form.startDate} onChange={e => setForm({ ...form, startDate: e.target.value })} /></Field></div>
           <button className="col-span-2 rounded-2xl bg-emerald-500 py-3 text-sm font-black text-white">Save EMI</button>
         </form>
       )}
