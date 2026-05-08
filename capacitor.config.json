@@ -2,11 +2,14 @@
   "appId": "com.rupeetrack.app",
   "appName": "RupeeTrack",
   "webDir": "dist",
+  "android": {
+    "webContentsDebuggingEnabled": false
+  },
   "plugins": {
     "StatusBar": {
       "style": "DARK",
       "backgroundColor": "#00000000",
-      "overlaysWebView": false
+      "overlaysWebView": true
     }
   }
 }
