@@ -168,3 +168,42 @@ export function useBudgets() {
 
   return { budgets, loading, updateBudget, deleteBudget, deleteAllBudgets, refetch: load }
 }
+
+export function useEmis() {
+  const [emis, setEmis] = useState([])
+  const [loading, setLoading] = useState(true)
+  const { toast } = useToast()
+
+  const load = useCallback(async () => {
+    try {
+      setEmis(await api.getEmis())
+    } catch (e) {
+      if (!e.isNetworkError) toast('Failed to load EMIs: ' + e.message)
+    } finally {
+      setLoading(false)
+    }
+  }, [toast])
+
+  useEffect(() => { load() }, [load])
+
+  const addEmi = useCallback(async (emi) => {
+    const created = await api.addEmi(emi)
+    setEmis(prev => [...prev, created].sort((a, b) => a.dueDay - b.dueDay || a.name.localeCompare(b.name)))
+    return created
+  }, [])
+
+  const payEmi = useCallback(async (id) => {
+    const today = new Date().toISOString().slice(0, 10)
+    const result = await api.payEmi(id, today)
+    setEmis(prev => prev.map(e => e.id === id ? result.emi : e))
+    toast('EMI marked paid and added to expenses')
+    return result
+  }, [toast])
+
+  const deleteEmi = useCallback(async (id) => {
+    await api.deleteEmi(id)
+    setEmis(prev => prev.filter(e => e.id !== id))
+  }, [])
+
+  return { emis, loading, addEmi, payEmi, deleteEmi, refetch: load }
+}

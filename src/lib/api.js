@@ -45,6 +45,11 @@ export const api = USE_LOCAL ? {
   updateBudget:    (c, a)   => localApi.updateBudget(c, a),
   deleteBudget:    (c)      => localApi.deleteBudget(c),
   deleteAllBudgets: ()      => localApi.deleteAllBudgets(),
+  getEmis:         ()       => localApi.getEmis(),
+  addEmi:          (emi)    => localApi.addEmi(emi),
+  updateEmi:       (id, d)  => localApi.updateEmi(id, d),
+  payEmi:          (id, date) => localApi.payEmi(id, date),
+  deleteEmi:       (id)    => localApi.deleteEmi(id),
   getMeta:         ()       => localApi.getMeta(),
   health:          ()       => localApi.health(),
 } : {
@@ -59,6 +64,11 @@ export const api = USE_LOCAL ? {
   updateBudget:    (cat, amt)    => request('PUT', `/budgets/${encodeURIComponent(cat)}`, { amount: amt }),
   deleteBudget:    (cat)         => request('DELETE', `/budgets/${encodeURIComponent(cat)}`),
   deleteAllBudgets: ()           => request('DELETE', '/budgets'),
+  getEmis:         ()            => request('GET', '/emis'),
+  addEmi:          (emi)         => request('POST', '/emis', emi),
+  updateEmi:       (id, data)    => request('PUT', `/emis/${id}`, data),
+  payEmi:          (id, date)    => request('POST', `/emis/${id}/pay`, { date }),
+  deleteEmi:       (id)          => request('DELETE', `/emis/${id}`),
   getMeta:         ()            => request('GET', '/meta'),
   health:          ()            => request('GET', '/health'),
 }

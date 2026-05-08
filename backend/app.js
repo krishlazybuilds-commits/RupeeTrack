@@ -3,7 +3,7 @@ const cors = require('cors')
 const db = require('./db')
 const { PORT, ALLOWED_ORIGINS, APP_NAME } = require('./config')
 const { CATEGORIES, CATEGORY_SET } = require('./constants')
-const { isValidDate, isValidMonth, normalizeTransactionInput, normalizeBudgetInput } = require('./validation')
+const { isValidDate, isValidMonth, normalizeTransactionInput, normalizeBudgetInput, normalizeEmiInput } = require('./validation')
 
 function createApp() {
   const app = express()
@@ -235,6 +235,102 @@ function createApp() {
     try {
       safeWrite(() => db.set('budgets', []).write())
       return ok(res, { deleted: true })
+    } catch (e) {
+      return err(res, e.message, 500)
+    }
+  })
+
+  // ── EMI Payments ─────────────────────────────────────────────────
+  function enrichEmi(emi) {
+    const paidInstallments = Number(emi.paidInstallments || 0)
+    const totalInstallments = Number(emi.totalInstallments || 0)
+    const progress = totalInstallments > 0 ? Math.round((paidInstallments / totalInstallments) * 100) : 0
+    return {
+      ...emi,
+      paidInstallments,
+      totalInstallments,
+      remainingInstallments: Math.max(totalInstallments - paidInstallments, 0),
+      remainingAmount: Math.max((totalInstallments - paidInstallments) * Number(emi.emiAmount || 0), 0),
+      progress,
+      active: emi.active !== false && paidInstallments < totalInstallments,
+    }
+  }
+
+  app.get('/api/emis', (_req, res) => {
+    const emis = db.get('emis').value().map(enrichEmi).sort((a, b) => a.dueDay - b.dueDay || a.name.localeCompare(b.name))
+    return ok(res, emis)
+  })
+
+  app.post('/api/emis', (req, res) => {
+    const { errors, value } = normalizeEmiInput(req.body)
+    if (errors.length) return err(res, 'Invalid EMI payload', 422, errors)
+
+    const now = new Date().toISOString()
+    const emi = enrichEmi({ id: nextId(), ...value, created_at: now, updated_at: now })
+
+    try {
+      safeWrite(() => db.get('emis').push(emi).write())
+      return res.status(201).json({ success: true, data: emi })
+    } catch (e) {
+      return err(res, e.message, 500)
+    }
+  })
+
+  app.put('/api/emis/:id', (req, res) => {
+    const id = Number(req.params.id)
+    const existing = db.get('emis').find({ id }).value()
+    if (!existing) return err(res, 'EMI not found', 404)
+
+    const { errors, value } = normalizeEmiInput(req.body, { partial: true })
+    if (errors.length) return err(res, 'Invalid EMI payload', 422, errors)
+
+    const updated = enrichEmi({ ...existing, ...value, updated_at: new Date().toISOString() })
+    try {
+      safeWrite(() => db.get('emis').find({ id }).assign(updated).write())
+      return ok(res, updated)
+    } catch (e) {
+      return err(res, e.message, 500)
+    }
+  })
+
+  app.post('/api/emis/:id/pay', (req, res) => {
+    const id = Number(req.params.id)
+    const existing = db.get('emis').find({ id }).value()
+    if (!existing) return err(res, 'EMI not found', 404)
+    if (Number(existing.paidInstallments || 0) >= Number(existing.totalInstallments || 0)) return err(res, 'EMI is already completed', 422)
+
+    const paymentDate = isValidDate(req.body?.date) ? req.body.date : new Date().toISOString().slice(0, 10)
+    const updated = enrichEmi({ ...existing, paidInstallments: Number(existing.paidInstallments || 0) + 1, lastPaidDate: paymentDate, updated_at: new Date().toISOString() })
+    const tx = {
+      id: nextId(),
+      type: 'expense',
+      amount: updated.emiAmount,
+      category: CATEGORY_SET.has(updated.category) ? updated.category : 'Other',
+      description: `${updated.name} EMI`.toUpperCase(),
+      date: paymentDate,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    }
+
+    try {
+      safeWrite(() => {
+        db.get('emis').find({ id }).assign(updated).write()
+        db.get('transactions').push(tx).write()
+      })
+      return ok(res, { emi: updated, transaction: tx })
+    } catch (e) {
+      return err(res, e.message, 500)
+    }
+  })
+
+  app.delete('/api/emis/:id', (req, res) => {
+    const id = Number(req.params.id)
+    const existing = db.get('emis').find({ id }).value()
+    if (!existing) return err(res, 'EMI not found', 404)
+
+    try {
+      safeWrite(() => db.get('emis').remove({ id }).write())
+      return ok(res, { id })
     } catch (e) {
       return err(res, e.message, 500)
     }

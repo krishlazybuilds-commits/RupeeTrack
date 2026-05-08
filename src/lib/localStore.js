@@ -3,14 +3,16 @@
 // survives app upgrades while still working fully offline.
 
 const DB_NAME = 'rupeetrack_db'
-const DB_VERSION = 1
+const DB_VERSION = 2
 const TRANSACTIONS_STORE = 'transactions'
 const BUDGETS_STORE = 'budgets'
+const EMIS_STORE = 'emis'
 
 // Legacy localStorage keys. We migrate them once into IndexedDB so existing
 // users keep their data after this update.
 const TRANSACTIONS_KEY = 'rupeetrack_transactions'
 const BUDGETS_KEY = 'rupeetrack_budgets'
+const EMIS_KEY = 'rupeetrack_emis'
 
 function now() {
   return new Date().toISOString()
@@ -46,6 +48,7 @@ let dbPromise
 let memoryFallback = {
   [TRANSACTIONS_STORE]: null,
   [BUDGETS_STORE]: null,
+  [EMIS_STORE]: null,
 }
 
 function readLegacyJson(key, fallback) {
@@ -87,6 +90,9 @@ function openDb() {
       if (!db.objectStoreNames.contains(BUDGETS_STORE)) {
         db.createObjectStore(BUDGETS_STORE, { keyPath: 'category' })
       }
+      if (!db.objectStoreNames.contains(EMIS_STORE)) {
+        db.createObjectStore(EMIS_STORE, { keyPath: 'id' })
+      }
     }
 
     req.onsuccess = () => resolve(req.result)
@@ -112,7 +118,9 @@ async function getAll(storeName) {
     if (!memoryFallback[storeName]) {
       memoryFallback[storeName] = storeName === TRANSACTIONS_STORE
         ? readLegacyJson(TRANSACTIONS_KEY, SEED_TRANSACTIONS)
-        : readLegacyJson(BUDGETS_KEY, SEED_BUDGETS)
+        : storeName === BUDGETS_STORE
+          ? readLegacyJson(BUDGETS_KEY, SEED_BUDGETS)
+          : readLegacyJson(EMIS_KEY, [])
     }
     return [...memoryFallback[storeName]]
   }
@@ -218,6 +226,25 @@ function normalizeTransactionForStorage(tx) {
   }
 }
 
+function enrichEmi(emi) {
+  const paidInstallments = Number(emi.paidInstallments || 0)
+  const totalInstallments = Number(emi.totalInstallments || 0)
+  return {
+    ...emi,
+    paidInstallments,
+    totalInstallments,
+    remainingInstallments: Math.max(totalInstallments - paidInstallments, 0),
+    remainingAmount: Math.max((totalInstallments - paidInstallments) * Number(emi.emiAmount || 0), 0),
+    progress: totalInstallments > 0 ? Math.round((paidInstallments / totalInstallments) * 100) : 0,
+    active: emi.active !== false && paidInstallments < totalInstallments,
+  }
+}
+
+async function getEmis() {
+  const rows = await ensureSeeded(EMIS_STORE, EMIS_KEY, [])
+  return rows.map(enrichEmi).sort((a, b) => a.dueDay - b.dueDay || a.name.localeCompare(b.name))
+}
+
 export const localApi = {
   getTransactions: async ({ type, category, search, from, to, limit, offset } = {}) => {
     let txs = (await getTransactions()).map(normalizeTransactionForStorage)
@@ -294,6 +321,37 @@ export const localApi = {
 
   deleteAllBudgets: async () => {
     await replaceAll(BUDGETS_STORE, [])
+    return true
+  },
+
+  getEmis: async () => getEmis(),
+
+  addEmi: async (data) => {
+    const emi = enrichEmi({ ...data, id: nextId(), paidInstallments: Number(data.paidInstallments || 0), active: data.active !== false, created_at: now(), updated_at: now() })
+    await putOne(EMIS_STORE, emi)
+    return emi
+  },
+
+  updateEmi: async (id, data) => {
+    const prev = (await getEmis()).find(e => e.id === Number(id))
+    if (!prev) throw new Error('Not found')
+    const updated = enrichEmi({ ...prev, ...data, updated_at: now() })
+    await putOne(EMIS_STORE, updated)
+    return updated
+  },
+
+  payEmi: async (id, date = todayString()) => {
+    const prev = (await getEmis()).find(e => e.id === Number(id))
+    if (!prev) throw new Error('Not found')
+    if (prev.paidInstallments >= prev.totalInstallments) throw new Error('EMI is already completed')
+    const emi = enrichEmi({ ...prev, paidInstallments: prev.paidInstallments + 1, lastPaidDate: date, updated_at: now() })
+    await putOne(EMIS_STORE, emi)
+    const transaction = await localApi.addTransaction({ type: 'expense', amount: emi.emiAmount, category: 'Other', description: `${emi.name} EMI`, date })
+    return { emi, transaction }
+  },
+
+  deleteEmi: async (id) => {
+    await deleteOne(EMIS_STORE, Number(id))
     return true
   },
 

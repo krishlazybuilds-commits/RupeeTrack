@@ -129,3 +129,48 @@ test('DELETE /api/budgets/:category deletes a budget', async () => {
   const budgets = await request(app).get('/api/budgets').expect(200)
   assert.equal(budgets.body.data.some((budget) => budget.category === 'Travel'), false)
 })
+
+test('EMI API creates, lists, and marks an EMI as paid', async () => {
+  const create = await request(app)
+    .post('/api/emis')
+    .send({
+      name: 'Bike Loan',
+      lender: 'SBI',
+      principal: 90000,
+      emiAmount: 4500,
+      totalInstallments: 20,
+      paidInstallments: 2,
+      dueDay: 8,
+      startDate: '2026-04-08',
+      category: 'Other',
+    })
+    .expect(201)
+
+  assert.equal(create.body.success, true)
+  assert.equal(create.body.data.remainingInstallments, 18)
+  assert.equal(create.body.data.progress, 10)
+
+  const list = await request(app).get('/api/emis').expect(200)
+  assert.equal(list.body.data.some((emi) => emi.name === 'Bike Loan'), true)
+
+  const paid = await request(app)
+    .post(`/api/emis/${create.body.data.id}/pay`)
+    .send({ date: '2026-05-08' })
+    .expect(200)
+
+  assert.equal(paid.body.data.emi.paidInstallments, 3)
+  assert.equal(paid.body.data.transaction.type, 'expense')
+  assert.equal(paid.body.data.transaction.amount, 4500)
+  assert.equal(paid.body.data.transaction.description, 'BIKE LOAN EMI')
+})
+
+test('EMI API validates invalid payloads', async () => {
+  const response = await request(app)
+    .post('/api/emis')
+    .send({ name: '', emiAmount: -1, totalInstallments: 0, dueDay: 40 })
+    .expect(422)
+
+  assert.equal(response.body.success, false)
+  assert.ok(response.body.details.includes('name is required'))
+  assert.ok(response.body.details.includes('dueDay must be between 1 and 31'))
+})

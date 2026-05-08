@@ -1,9 +1,10 @@
-import { Home, Target, BarChart2, ShoppingCart } from 'lucide-react'
+import { Home, Target, BarChart2, ShoppingCart, WalletCards } from 'lucide-react'
 
 export default function BottomNav({ activeTab, setActiveTab }) {
   const tabs = [
     { id: 'home', Icon: Home, label: 'Home' },
     { id: 'budget', Icon: Target, label: 'Budget' },
+    { id: 'emi', Icon: WalletCards, label: 'EMI' },
     { id: 'cart', Icon: ShoppingCart, label: 'Cart' },
     { id: 'stats', Icon: BarChart2, label: 'Stats' },
   ]

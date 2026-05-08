@@ -8,11 +8,12 @@ import AddBudgetModal from './AddBudgetModal'
 import BottomNav from './BottomNav'
 import DeleteConfirmModal from './DeleteConfirmModal'
 import DraggableFAB from './DraggableFAB'
-import { useTransactions, useBudgets } from '../lib/useData'
+import { useTransactions, useBudgets, useEmis } from '../lib/useData'
 
 const SpendingChart = lazy(() => import('./SpendingChart'))
 const BudgetTracker = lazy(() => import('./BudgetTracker'))
 const CartCalculator = lazy(() => import('./CartCalculator'))
+const EmiTracker = lazy(() => import('./EmiTracker'))
 
 function Skeleton() {
   return (
@@ -42,6 +43,7 @@ export default function Dashboard() {
     addTransaction, deleteTransaction, deleteAllTransactions,
   } = useTransactions()
   const { budgets, updateBudget, deleteBudget, deleteAllBudgets } = useBudgets()
+  const { emis, addEmi, payEmi, deleteEmi } = useEmis()
 
   const [showModal, setShowModal]         = useState(false)
   const [showBudgetModal, setShowBudgetModal] = useState(false)
@@ -139,6 +141,11 @@ export default function Dashboard() {
             {activeTab === 'cart' && (
               <Suspense fallback={<CardFallback height={420} />}>
                 <CartCalculator />
+              </Suspense>
+            )}
+            {activeTab === 'emi' && (
+              <Suspense fallback={<CardFallback height={520} />}>
+                <EmiTracker emis={emis} addEmi={addEmi} payEmi={payEmi} deleteEmi={deleteEmi} />
               </Suspense>
             )}
             {activeTab === 'stats'  && (

@@ -36,6 +36,7 @@ db.defaults({
     { id: 9, category: 'Education', amount: 3000 },
     { id: 10, category: 'Travel', amount: 5000 },
   ],
+  emis: [],
 }).write()
 
 module.exports = db
