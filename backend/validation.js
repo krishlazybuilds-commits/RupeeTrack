@@ -96,12 +96,6 @@ function normalizeEmiInput(input = {}, { partial = false } = {}) {
     else normalized.name = name
   }
 
-  if (!partial || has('lender')) {
-    const lender = String(input.lender || '').trim()
-    if (lender.length > 80) errors.push('lender must be 80 characters or fewer')
-    else normalized.lender = lender
-  }
-
   for (const key of ['principal', 'emiAmount']) {
     if (!partial || has(key)) {
       const amount = Number(input[key])
@@ -116,7 +110,7 @@ function normalizeEmiInput(input = {}, { partial = false } = {}) {
     else normalized.paidInstallments = paid
   }
 
-  if (!partial || has('totalInstallments')) {
+  if (has('totalInstallments')) {
     const total = Number(input.totalInstallments)
     if (!Number.isInteger(total) || total <= 0) errors.push('totalInstallments must be a positive integer')
     else normalized.totalInstallments = total
@@ -147,8 +141,8 @@ function normalizeEmiInput(input = {}, { partial = false } = {}) {
   if (has('active') || !partial) normalized.active = input.active !== false
 
   const paid = normalized.paidInstallments ?? Number(input.paidInstallments || 0)
-  const total = normalized.totalInstallments ?? Number(input.totalInstallments)
-  if (Number.isInteger(paid) && Number.isInteger(total) && paid > total) {
+  const total = normalized.totalInstallments ?? (has('totalInstallments') ? Number(input.totalInstallments) : null)
+  if (Number.isInteger(paid) && Number.isInteger(total) && total !== null && paid > total) {
     errors.push('paidInstallments cannot exceed totalInstallments')
   }
 

@@ -24,7 +24,7 @@ function inputClass() {
 }
 
 export default function EmiTracker({ emis, addEmi, payEmi, deleteEmi }) {
-  const [form, setForm] = useState({ name: '', lender: '', principal: '', emiAmount: '', totalInstallments: '', paidInstallments: '0', dueDay: String(todayDay), startDate: todayString, notes: '' })
+  const [form, setForm] = useState({ name: '', principal: '', emiAmount: '', paidInstallments: '0', dueDay: String(todayDay), startDate: todayString, notes: '' })
   const [showForm, setShowForm] = useState(false)
 
   const summary = useMemo(() => {
@@ -42,12 +42,11 @@ export default function EmiTracker({ emis, addEmi, payEmi, deleteEmi }) {
       ...form,
       principal: Number(form.principal),
       emiAmount: Number(form.emiAmount),
-      totalInstallments: Number(form.totalInstallments),
       paidInstallments: Number(form.paidInstallments || 0),
       dueDay: Number(form.dueDay),
       category: 'Other',
     })
-    setForm({ name: '', lender: '', principal: '', emiAmount: '', totalInstallments: '', paidInstallments: '0', dueDay: String(todayDay), startDate: todayString, notes: '' })
+    setForm({ name: '', principal: '', emiAmount: '', paidInstallments: '0', dueDay: String(todayDay), startDate: todayString, notes: '' })
     setShowForm(false)
   }
 
@@ -77,11 +76,9 @@ export default function EmiTracker({ emis, addEmi, payEmi, deleteEmi }) {
       {showForm && (
         <form onSubmit={submit} className="glass grid grid-cols-2 gap-3 rounded-[26px] p-4">
           <div className="col-span-2"><Field label="Loan name"><input required className={inputClass()} style={inputStyle()} placeholder="Home loan" value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} /></Field></div>
-          <Field label="Lender"><input className={inputClass()} style={inputStyle()} placeholder="HDFC Bank" value={form.lender} onChange={e => setForm({ ...form, lender: e.target.value })} /></Field>
           <Field label="Due day"><input required min="1" max="31" type="number" className={inputClass()} style={inputStyle()} value={form.dueDay} onChange={e => setForm({ ...form, dueDay: e.target.value })} /></Field>
           <Field label="Principal"><input required inputMode="decimal" className={inputClass()} style={inputStyle()} value={form.principal} onChange={e => setForm({ ...form, principal: sanitizeMoneyInput(e.target.value) })} /></Field>
           <Field label="Monthly EMI"><input required inputMode="decimal" className={inputClass()} style={inputStyle()} value={form.emiAmount} onChange={e => setForm({ ...form, emiAmount: sanitizeMoneyInput(e.target.value) })} /></Field>
-          <Field label="Total months"><input required min="1" type="number" className={inputClass()} style={inputStyle()} value={form.totalInstallments} onChange={e => setForm({ ...form, totalInstallments: e.target.value })} /></Field>
           <Field label="Paid months"><input min="0" type="number" className={inputClass()} style={inputStyle()} value={form.paidInstallments} onChange={e => setForm({ ...form, paidInstallments: e.target.value })} /></Field>
           <div className="col-span-2"><Field label="Start date"><input required type="date" className={inputClass()} style={inputStyle()} value={form.startDate} onChange={e => setForm({ ...form, startDate: e.target.value })} /></Field></div>
           <button className="col-span-2 rounded-2xl bg-emerald-500 py-3 text-sm font-black text-white">Save EMI</button>
@@ -96,7 +93,7 @@ export default function EmiTracker({ emis, addEmi, payEmi, deleteEmi }) {
           return (
             <article key={emi.id} className="glass rounded-[28px] p-4">
               <div className="flex items-start justify-between gap-3">
-                <div className="flex gap-3"><div className="rounded-2xl bg-emerald-500/15 p-3 text-emerald-400"><IndianRupee size={20} /></div><div><h3 className="font-black">{emi.name}</h3><p className="text-xs" style={{ color: 'var(--text-muted)' }}>{emi.lender || 'Personal loan'} • {emi.paidInstallments}/{emi.totalInstallments} paid</p></div></div>
+                <div className="flex gap-3"><div className="rounded-2xl bg-emerald-500/15 p-3 text-emerald-400"><IndianRupee size={20} /></div><div><h3 className="font-black">{emi.name}</h3><p className="text-xs" style={{ color: 'var(--text-muted)' }}>{emi.paidInstallments} EMI payments made</p></div></div>
                 <button onClick={() => deleteEmi(emi.id)} className="rounded-xl p-2 text-red-400 hover:bg-red-500/10"><Trash2 size={16} /></button>
               </div>
               <div className="mt-4 flex items-end justify-between"><div><p className="text-xs" style={{ color: 'var(--text-muted)' }}>Monthly EMI</p><p className="text-xl font-black">{fmt(emi.emiAmount)}</p></div><span className="rounded-full bg-cyan-500/15 px-3 py-1 text-xs font-bold text-cyan-300"><CalendarClock size={13} className="mr-1 inline" />{dueState}</span></div>

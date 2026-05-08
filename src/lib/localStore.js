@@ -229,14 +229,17 @@ function normalizeTransactionForStorage(tx) {
 function enrichEmi(emi) {
   const paidInstallments = Number(emi.paidInstallments || 0)
   const totalInstallments = Number(emi.totalInstallments || 0)
+  const principal = Number(emi.principal || 0)
+  const paidAmount = paidInstallments * Number(emi.emiAmount || 0)
+  const remainingAmount = Math.max(principal - paidAmount, 0)
   return {
     ...emi,
     paidInstallments,
     totalInstallments,
-    remainingInstallments: Math.max(totalInstallments - paidInstallments, 0),
-    remainingAmount: Math.max((totalInstallments - paidInstallments) * Number(emi.emiAmount || 0), 0),
-    progress: totalInstallments > 0 ? Math.round((paidInstallments / totalInstallments) * 100) : 0,
-    active: emi.active !== false && paidInstallments < totalInstallments,
+    remainingInstallments: totalInstallments > 0 ? Math.max(totalInstallments - paidInstallments, 0) : null,
+    remainingAmount,
+    progress: principal > 0 ? Math.min(Math.round((paidAmount / principal) * 100), 100) : 0,
+    active: emi.active !== false && remainingAmount > 0,
   }
 }
 
