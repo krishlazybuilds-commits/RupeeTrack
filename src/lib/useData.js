@@ -188,7 +188,7 @@ export function useEmis() {
 
   const addEmi = useCallback(async (emi) => {
     const created = await api.addEmi(emi)
-    setEmis(prev => [...prev, created].sort((a, b) => a.dueDay - b.dueDay || a.name.localeCompare(b.name)))
+    setEmis(prev => [...prev, created].sort((a, b) => a.name.localeCompare(b.name)))
     return created
   }, [])
 

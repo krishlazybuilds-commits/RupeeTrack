@@ -243,24 +243,15 @@ function createApp() {
   // ── EMI Payments ─────────────────────────────────────────────────
   function enrichEmi(emi) {
     const paidInstallments = Number(emi.paidInstallments || 0)
-    const totalInstallments = Number(emi.totalInstallments || 0)
-    const principal = Number(emi.principal || 0)
-    const paidAmount = paidInstallments * Number(emi.emiAmount || 0)
-    const remainingAmount = Math.max(principal - paidAmount, 0)
-    const progress = principal > 0 ? Math.min(Math.round((paidAmount / principal) * 100), 100) : 0
     return {
       ...emi,
       paidInstallments,
-      totalInstallments,
-      remainingInstallments: totalInstallments > 0 ? Math.max(totalInstallments - paidInstallments, 0) : null,
-      remainingAmount,
-      progress,
-      active: emi.active !== false && remainingAmount > 0,
+      active: emi.active !== false,
     }
   }
 
   app.get('/api/emis', (_req, res) => {
-    const emis = db.get('emis').value().map(enrichEmi).sort((a, b) => a.dueDay - b.dueDay || a.name.localeCompare(b.name))
+    const emis = db.get('emis').value().map(enrichEmi).sort((a, b) => a.name.localeCompare(b.name))
     return ok(res, emis)
   })
 
@@ -300,8 +291,6 @@ function createApp() {
     const id = Number(req.params.id)
     const existing = db.get('emis').find({ id }).value()
     if (!existing) return err(res, 'EMI not found', 404)
-    if (!enrichEmi(existing).active) return err(res, 'EMI is already completed', 422)
-
     const paymentDate = isValidDate(req.body?.date) ? req.body.date : new Date().toISOString().slice(0, 10)
     const updated = enrichEmi({ ...existing, paidInstallments: Number(existing.paidInstallments || 0) + 1, lastPaidDate: paymentDate, updated_at: new Date().toISOString() })
     const tx = {

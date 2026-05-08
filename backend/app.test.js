@@ -135,18 +135,14 @@ test('EMI API creates, lists, and marks an EMI as paid', async () => {
     .post('/api/emis')
     .send({
       name: 'Bike Loan',
-      principal: 90000,
       emiAmount: 4500,
-      paidInstallments: 2,
-      dueDay: 8,
-      startDate: '2026-04-08',
       category: 'Other',
     })
     .expect(201)
 
   assert.equal(create.body.success, true)
-  assert.equal(create.body.data.remainingAmount, 81000)
-  assert.equal(create.body.data.progress, 10)
+  assert.equal(create.body.data.emiAmount, 4500)
+  assert.equal(create.body.data.paidInstallments, 0)
 
   const list = await request(app).get('/api/emis').expect(200)
   assert.equal(list.body.data.some((emi) => emi.name === 'Bike Loan'), true)
@@ -156,7 +152,7 @@ test('EMI API creates, lists, and marks an EMI as paid', async () => {
     .send({ date: '2026-05-08' })
     .expect(200)
 
-  assert.equal(paid.body.data.emi.paidInstallments, 3)
+  assert.equal(paid.body.data.emi.paidInstallments, 1)
   assert.equal(paid.body.data.transaction.type, 'expense')
   assert.equal(paid.body.data.transaction.amount, 4500)
   assert.equal(paid.body.data.transaction.description, 'BIKE LOAN EMI')
@@ -165,10 +161,10 @@ test('EMI API creates, lists, and marks an EMI as paid', async () => {
 test('EMI API validates invalid payloads', async () => {
   const response = await request(app)
     .post('/api/emis')
-    .send({ name: '', emiAmount: -1, dueDay: 40 })
+    .send({ name: '', emiAmount: -1 })
     .expect(422)
 
   assert.equal(response.body.success, false)
   assert.ok(response.body.details.includes('name is required'))
-  assert.ok(response.body.details.includes('dueDay must be between 1 and 31'))
+  assert.ok(response.body.details.includes('amount must be a positive number'))
 })

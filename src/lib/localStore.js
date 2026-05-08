@@ -228,24 +228,16 @@ function normalizeTransactionForStorage(tx) {
 
 function enrichEmi(emi) {
   const paidInstallments = Number(emi.paidInstallments || 0)
-  const totalInstallments = Number(emi.totalInstallments || 0)
-  const principal = Number(emi.principal || 0)
-  const paidAmount = paidInstallments * Number(emi.emiAmount || 0)
-  const remainingAmount = Math.max(principal - paidAmount, 0)
   return {
     ...emi,
     paidInstallments,
-    totalInstallments,
-    remainingInstallments: totalInstallments > 0 ? Math.max(totalInstallments - paidInstallments, 0) : null,
-    remainingAmount,
-    progress: principal > 0 ? Math.min(Math.round((paidAmount / principal) * 100), 100) : 0,
-    active: emi.active !== false && remainingAmount > 0,
+    active: emi.active !== false,
   }
 }
 
 async function getEmis() {
   const rows = await ensureSeeded(EMIS_STORE, EMIS_KEY, [])
-  return rows.map(enrichEmi).sort((a, b) => a.dueDay - b.dueDay || a.name.localeCompare(b.name))
+  return rows.map(enrichEmi).sort((a, b) => a.name.localeCompare(b.name))
 }
 
 export const localApi = {
@@ -346,7 +338,6 @@ export const localApi = {
   payEmi: async (id, date = todayString()) => {
     const prev = (await getEmis()).find(e => e.id === Number(id))
     if (!prev) throw new Error('Not found')
-    if (prev.paidInstallments >= prev.totalInstallments) throw new Error('EMI is already completed')
     const emi = enrichEmi({ ...prev, paidInstallments: prev.paidInstallments + 1, lastPaidDate: date, updated_at: now() })
     await putOne(EMIS_STORE, emi)
     const transaction = await localApi.addTransaction({ type: 'expense', amount: emi.emiAmount, category: 'Other', description: `${emi.name} EMI`, date })

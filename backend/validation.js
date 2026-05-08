@@ -96,35 +96,16 @@ function normalizeEmiInput(input = {}, { partial = false } = {}) {
     else normalized.name = name
   }
 
-  for (const key of ['principal', 'emiAmount']) {
-    if (!partial || has(key)) {
-      const amount = Number(input[key])
-      if (!Number.isFinite(amount) || amount <= 0) errors.push(`${key} must be a positive number`)
-      else normalized[key] = amount
-    }
+  if (!partial || has('emiAmount') || has('amount')) {
+    const amount = Number(input.emiAmount ?? input.amount)
+    if (!Number.isFinite(amount) || amount <= 0) errors.push('amount must be a positive number')
+    else normalized.emiAmount = amount
   }
 
-  if (!partial || has('paidInstallments')) {
+  if (has('paidInstallments')) {
     const paid = Number(input.paidInstallments || 0)
     if (!Number.isInteger(paid) || paid < 0) errors.push('paidInstallments must be a non-negative integer')
     else normalized.paidInstallments = paid
-  }
-
-  if (has('totalInstallments')) {
-    const total = Number(input.totalInstallments)
-    if (!Number.isInteger(total) || total <= 0) errors.push('totalInstallments must be a positive integer')
-    else normalized.totalInstallments = total
-  }
-
-  if (!partial || has('dueDay')) {
-    const dueDay = Number(input.dueDay)
-    if (!Number.isInteger(dueDay) || dueDay < 1 || dueDay > 31) errors.push('dueDay must be between 1 and 31')
-    else normalized.dueDay = dueDay
-  }
-
-  if (!partial || has('startDate')) {
-    if (!isValidDate(input.startDate)) errors.push('startDate must be in YYYY-MM-DD format')
-    else normalized.startDate = input.startDate
   }
 
   if (has('category') || !partial) {
@@ -139,12 +120,6 @@ function normalizeEmiInput(input = {}, { partial = false } = {}) {
   }
 
   if (has('active') || !partial) normalized.active = input.active !== false
-
-  const paid = normalized.paidInstallments ?? Number(input.paidInstallments || 0)
-  const total = normalized.totalInstallments ?? (has('totalInstallments') ? Number(input.totalInstallments) : null)
-  if (Number.isInteger(paid) && Number.isInteger(total) && total !== null && paid > total) {
-    errors.push('paidInstallments cannot exceed totalInstallments')
-  }
 
   return { errors, value: normalized }
 }
