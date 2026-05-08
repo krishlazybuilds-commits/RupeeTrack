@@ -13,6 +13,16 @@ RupeeTrack is a mobile-first personal finance tracker for recording income, expe
 - Theme support
 - Android-ready Capacitor project
 
+## Screenshots
+
+| Home dashboard | Budget tracker | Cart calculator |
+| --- | --- | --- |
+| ![Home dashboard](docs/screenshots/home-dashboard.png) | ![Budget tracker](docs/screenshots/budget-tracker.png) | ![Cart calculator](docs/screenshots/cart-calculator.png) |
+
+| Stats | Add transaction | Date picker modal |
+| --- | --- | --- |
+| ![Stats](docs/screenshots/stats.png) | ![Add transaction](docs/screenshots/add-transaction.png) | ![Date picker modal](docs/screenshots/date-picker-modal.png) |
+
 ## Tech stack
 
 - **Frontend:** React 19, Vite, Tailwind CSS, Recharts, Lucide React
