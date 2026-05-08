@@ -67,11 +67,11 @@ export default function AddEmiModal({ onClose, onAdd }) {
           <p className="text-xs mb-2 uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>Loan Name</p>
           <input
             type="text"
-            placeholder="Home loan"
+            placeholder="HOME LOAN"
             value={name}
-            onChange={e => setName(e.target.value)}
+            onChange={e => setName(e.target.value.toUpperCase())}
             className="modal-input w-full rounded-xl py-3 px-4 text-sm"
-            style={inputStyle}
+            style={{ ...inputStyle, textTransform: 'uppercase' }}
             autoFocus
           />
         </div>
