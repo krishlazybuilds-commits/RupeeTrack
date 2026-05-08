@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { X, WalletCards } from 'lucide-react'
 import { getPositiveMoneyValue, sanitizeMoneyInput } from '../lib/money'
 
@@ -37,7 +38,7 @@ export default function AddEmiModal({ onClose, onAdd }) {
     }
   }
 
-  return (
+  return createPortal(
     <div
       className="fixed inset-0 z-50 flex items-end justify-center bg-black/70 backdrop-blur-sm"
       onClick={handleBackdropClick}
@@ -101,6 +102,7 @@ export default function AddEmiModal({ onClose, onAdd }) {
           {submitting ? 'Saving…' : 'Save EMI'}
         </button>
       </div>
-    </div>
+    </div>,
+    document.body
   )
 }

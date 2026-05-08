@@ -1,7 +1,8 @@
 import { Trash2, X } from 'lucide-react'
+import { createPortal } from 'react-dom'
 
 export default function DeleteConfirmModal({ title, message, onConfirm, onCancel }) {
-  return (
+  return createPortal(
     <div className="fixed inset-0 z-[70] flex items-center justify-center px-5" onClick={onCancel}>
       <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" />
       <div
@@ -37,6 +38,7 @@ export default function DeleteConfirmModal({ title, message, onConfirm, onCancel
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   )
 }
