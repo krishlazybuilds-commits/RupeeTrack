@@ -44,6 +44,12 @@ const SEED_BUDGETS = [
   { category: 'Travel',        amount: 5000  },
 ]
 
+// Demo rows are useful while developing, but a production APK must never create
+// fake financial data for users. If Android gives the WebView a fresh storage
+// area, seeding samples makes it look like the user's real data was replaced.
+// Enable samples explicitly with VITE_ENABLE_SAMPLE_DATA=true when needed.
+const ENABLE_SAMPLE_DATA = import.meta.env.DEV || import.meta.env.VITE_ENABLE_SAMPLE_DATA === 'true'
+
 let dbPromise
 let memoryFallback = {
   [TRANSACTIONS_STORE]: null,
@@ -181,7 +187,7 @@ async function ensureSeeded(storeName, legacyKey, seedRows) {
   if (isInitialized(legacyKey)) return []
 
   const migrated = readLegacyJson(legacyKey, null)
-  const rows = Array.isArray(migrated) ? migrated : seedRows
+  const rows = Array.isArray(migrated) ? migrated : (ENABLE_SAMPLE_DATA ? seedRows : [])
   await replaceAll(storeName, rows)
   markInitialized(legacyKey)
   return [...rows]
